@@ -14,10 +14,12 @@ def _load_business_data():
 
 
 bs = _load_business_data()
+
 # used for validation
 VALID_COUNTRIES = set([b["country"]
                        for b in bs.values()])
-BUSINESSES_NOT_FOUND = "Business not found"
+BUSINESS_NOT_FOUND = "Business not found"
+
 
 # definition
 
@@ -28,40 +30,48 @@ class Business(types.Type):
     address = validators.String(max_length=200)
     city = validators.String(max_length=50)
     country = validators.String(enum=list(VALID_COUNTRIES))
-    post_code = validators.String(max_length=20, default="")
+    # Thought would be enough to set default to '', but got error, "May not be null".
+    # So added "allow_null = True"
+    post_code = validators.String(max_length=20, default='', allow_null=True)
 
 
 # API methods
 def list_businesses() -> List[Business]:
+    return [Business(b[1]) for b in sorted(bs.items())]
+
+
+def create_business(b: Business) -> JSONResponse:
+    b_id = len(bs) + 1
+    b.id = b_id
+    bs[b_id] = b
+    return JSONResponse(Business(b), 201)
+
+
+def get_business(b_id: int) -> JSONResponse:
+    b = bs.get(b_id)
+    if not b:
+        error = {'error': BUSINESS_NOT_FOUND}
+        return JSONResponse(error, 404)
+    return JSONResponse(Business(b), 200)
+
+
+def update_business(b_id: int, b: Business) -> JSONResponse:
     pass
 
 
-def create_business(business: Business) -> JSONResponse:
-    pass
-
-
-def get_business(business_id: int) -> JSONResponse:
-    pass
-
-
-def update_business(business_id: int, business: Business) -> JSONResponse:
-    pass
-
-
-def delete_business(business_id: int) -> JSONResponse:
+def delete_business(b_id: int) -> JSONResponse:
     pass
 
 
 routes = [
     Route('/', method='GET', handler=list_businesses),
     Route('/', method='POST', handler=create_business),
-    Route('/{car_id}/', method='GET', handler=get_business),
-    Route('/{car_id}/', method='PUT', handler=update_business),
-    Route('/{car_id}/', method='DELETE', handler=delete_business),
+    Route('/{b_id}/', method='GET', handler=get_business),
+    Route('/{b_id}/', method='PUT', handler=update_business),
+    Route('/{b_id}/', method='DELETE', handler=delete_business),
 ]
 
 app = App(routes=routes)
-
 
 if __name__ == '__main__':
     app.serve("127.0.0.1", 5000, debug=True)
