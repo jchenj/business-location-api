@@ -9,15 +9,15 @@ from apistar.http import JSONResponse
 
 def _load_business_data():
     with open('mock_business_data.json') as f:
-        bs = json.loads(f.read())
-        return {b["id"]: b for b in bs}
+        businesses = json.loads(f.read())
+        return {business["id"]: business for business in businesses}
 
 
-bs = _load_business_data()
+businesses = _load_business_data()
 
 # used for validation
-VALID_COUNTRIES = set([b["country"]
-                       for b in bs.values()])
+VALID_COUNTRIES = set([business["country"]
+                       for business in businesses.values()])
 BUSINESS_NOT_FOUND = "Business not found"
 
 
@@ -37,30 +37,43 @@ class Business(types.Type):
 
 # API methods
 def list_businesses() -> List[Business]:
-    return [Business(b[1]) for b in sorted(bs.items())]
+    return [Business(b[1]) for b in sorted(businesses.items())]
 
 
 def create_business(b: Business) -> JSONResponse:
-    b_id = len(bs) + 1
+    b_id = len(businesses) + 1
     b.id = b_id
-    bs[b_id] = b
+    businesses[b_id] = b
     return JSONResponse(Business(b), 201)
 
 
 def get_business(b_id: int) -> JSONResponse:
-    b = bs.get(b_id)
+    b = businesses.get(b_id)
     if not b:
         error = {'error': BUSINESS_NOT_FOUND}
         return JSONResponse(error, 404)
     return JSONResponse(Business(b), 200)
 
 
+# ! TODO: check into - func not working in Postman, but test passing
 def update_business(b_id: int, b: Business) -> JSONResponse:
-    pass
+    if not businesses.get(b_id):
+        error = {'error': BUSINESS_NOT_FOUND}
+        return JSONResponse(error, status_code=404)
+
+    b.id = b_id
+    businesses[b_id] = b
+    return JSONResponse(Business(b), status_code=200)
 
 
+# ! TODO: check into - func not working in Postman, but test passing
 def delete_business(b_id: int) -> JSONResponse:
-    pass
+    if not businesses.get(b_id):
+        error = {'error': BUSINESS_NOT_FOUND}
+        return JSONResponse(error, status_code=404)
+
+    del businesses[b_id]
+    return JSONResponse({}, status_code=204)
 
 
 routes = [
