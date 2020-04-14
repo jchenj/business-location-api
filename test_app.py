@@ -22,10 +22,10 @@ def test_list_businesses():
 
 def test_create_business():
     data = dict(company='My Company',
-                        address='123 Oak Street',
-                        city='My City',
-                        country='Canada',
-                        post_code='V7T')
+                address='123 Oak Street',
+                city='My City',
+                country='Canada',
+                post_code='V7T')
     response = client.post('/', data=data)
     assert response.status_code == 201
     assert len(businesses) == 1001
@@ -39,16 +39,51 @@ def test_create_business():
                     post_code='V7T')
     assert response.json() == expected
 
+
+# This test failing
 def test_create_business_after_delete():
-    pass
+    """(From demo: 'Test to fail create_business's len(businesses)+1 (fix max(businesses.keys())+1)"""
+    b_count = len(businesses)
+    response = client.delete('/99/')
+    assert response.status_code == 204
+    assert len(businesses) == b_count - 1
+
+    data = {"company": "Hooray Inc",
+            "address": "126 Oak St",
+            "city": "London",
+            "country": "Canada",
+            "post_code": "8VR"}
+    response = client.post('/', data=data)
+    assert response.status_code == 201
+    assert len(businesses) == b_count + 1
 
 
 def test_create_business_missing_fields():
-    pass
+    data = {'post_code': 'B6F'}
+    response = client.post('/', data=data)
+    assert response.status_code == 400
+
+    errors = response.json()
+    assert errors['company'] == 'The "company" field is required.'
+    assert errors['address'] == 'The "address" field is required.'
+    assert errors['city'] == 'The "city" field is required.'
+    assert errors['country'] == 'The "country" field is required.'
 
 
 def test_create_business_field_validation():
-    pass
+    data = {"company": 'x' * 101,
+            "address": 'x' * 201,
+            "city": 'x' * 51,
+            "country": 'Romania',
+            "post_code": 'x' * 21}
+    response = client.post('/', data=data)
+
+    errors = response.json()
+    assert errors['company'] == 'Must have no more than 100 characters.'
+    assert errors['address'] == 'Must have no more than 200 characters.'
+    assert errors['city'] == 'Must have no more than 50 characters.'
+    assert "Must be one of" in errors['country']
+    assert errors['post_code'] == 'Must have no more than 20 characters.'
 
 
 def test_get_business():
@@ -63,7 +98,9 @@ def test_get_business():
 
 
 def test_get_business_not_found():
-    pass
+    response = client.get('/2000/')
+    assert response.status_code == 404
+    assert response.json() == {'error': BUSINESS_NOT_FOUND}
 
 
 def test_update_business():
@@ -88,11 +125,32 @@ def test_update_business():
 
 
 def test_update_business_not_found():
-    pass
+    data = {'company': 'Some Company',
+            'address': 'Some Address',
+            'city': 'Some City',
+            'country': 'Canada',
+            'post_code': 'M7Y'}
+    response = client.put('/2000/', data=data)
+
+    assert response.status_code == 404
+    assert response.json() == {'error': BUSINESS_NOT_FOUND}
 
 
 def test_update_business_validation():
-    pass
+    data = {"company": 'x' * 102,
+            "address": 'x' * 202,
+            "city": 'x' * 52,
+            "country": 'Vietnam',
+            "post_code": 'x' * 22}
+    response = client.put('/31/', data=data)
+    assert response.status_code == 400
+
+    errors = response.json()
+    assert errors['company'] == 'Must have no more than 100 characters.'
+    assert errors['address'] == 'Must have no more than 200 characters.'
+    assert errors['city'] == 'Must have no more than 50 characters.'
+    assert "Must be one of" in errors['country']
+    assert errors['post_code'] == 'Must have no more than 20 characters.'
 
 
 def test_delete_business():
